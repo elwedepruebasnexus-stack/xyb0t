@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>XyBot — Discord Bot</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #0a0a0f;
+      --bg2:     #111118;
+      --card:    #13131c;
+      --border:  #1e1e2e;
+      --red:     #e53935;
+      --red2:    #ff6b6b;
+      --purple:  #5865f2;
+      --white:   #f0f0ff;
+      --muted:   #6b6b8a;
+      --accent:  #ff3d3d;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--white);
+      font-family: 'Syne', sans-serif;
+      overflow-x: hidden;
+      cursor: none;
+    }
+
+    /* ── Custom Cursor ── */
+    .cursor {
+      position: fixed;
+      width: 12px; height: 12px;
+      background: var(--red);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 9999;
+      transform: translate(-50%, -50%);
+      transition: transform 0.1s, width 0.2s, height 0.2s, background 0.2s;
+      mix-blend-mode: screen;
+    }
+    .cursor-ring {
+      position: fixed;
+      width: 36px; height: 36px;
+      border: 1.5px solid var(--red2);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 9998;
+      transform: translate(-50%, -50%);
+      transition: transform 0.15s ease, width 0.3s, height 0.3s;
+      opacity: 0.5;
+    }
+
+    /* ── Noise overlay ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.4;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.2rem 3rem;
+      z-index: 100;
+      background: rgba(10,10,15,0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-logo {
+      font-family: 'Space Mono', monospace;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--white);
+      letter-spacing: -0.02em;
+    }
+    .nav-logo span { color: var(--red); }
+
+    .nav-links { display: flex; gap: 2rem; }
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.88rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--white); }
+
+    .nav-cta {
+      background: var(--red);
+      color: #fff;
+      border: none;
+      padding: 0.55rem 1.4rem;
+      border-radius: 6px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 0.88rem;
+      cursor: none;
+      text-decoration: none;
+      transition: background 0.2s, transform 0.15s;
+    }
+    .nav-cta:hover { background: var(--red2); transform: translateY(-1px); }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 8rem 3rem 4rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Red glow blobs */
+    .blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      pointer-events: none;
+    }
+    .blob-1 {
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(229,57,53,0.18) 0%, transparent 70%);
+      top: -150px; right: -100px;
+      animation: blobFloat 8s ease-in-out infinite;
+    }
+    .blob-2 {
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, rgba(88,101,242,0.12) 0%, transparent 70%);
+      bottom: 0; left: -50px;
+      animation: blobFloat 10s ease-in-out infinite reverse;
+    }
+
+    @keyframes blobFloat {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-30px) scale(1.05); }
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(229,57,53,0.12);
+      border: 1px solid rgba(229,57,53,0.3);
+      color: var(--red2);
+      padding: 0.35rem 0.9rem;
+      border-radius: 99px;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      width: fit-content;
+      margin-bottom: 1.8rem;
+      animation: fadeUp 0.6s ease both;
+    }
+    .badge-dot {
+      width: 6px; height: 6px;
+      background: var(--red);
+      border-radius: 50%;
+      animation: pulse 2s ease infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    .hero h1 {
+      font-size: clamp(3.5rem, 8vw, 7.5rem);
+      font-weight: 800;
+      line-height: 0.95;
+      letter-spacing: -0.03em;
+      margin-bottom: 1.8rem;
+      animation: fadeUp 0.7s 0.1s ease both;
+    }
+    .hero h1 .red { color: var(--red); }
+    .hero h1 .outline {
+      -webkit-text-stroke: 2px var(--white);
+      color: transparent;
+    }
+
+    .hero-sub {
+      max-width: 520px;
+      font-size: 1.1rem;
+      color: var(--muted);
+      line-height: 1.7;
+      margin-bottom: 2.5rem;
+      font-weight: 400;
+      animation: fadeUp 0.7s 0.2s ease both;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      animation: fadeUp 0.7s 0.3s ease both;
+    }
+
+    .btn-primary {
+      background: var(--red);
+      color: #fff;
+      padding: 0.85rem 2rem;
+      border-radius: 8px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+      text-decoration: none;
+      cursor: none;
+      transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+      box-shadow: 0 0 30px rgba(229,57,53,0.3);
+    }
+    .btn-primary:hover {
+      background: var(--red2);
+      transform: translateY(-2px);
+      box-shadow: 0 0 45px rgba(229,57,53,0.45);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--white);
+      padding: 0.85rem 2rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+      text-decoration: none;
+      cursor: none;
+      transition: border-color 0.2s, transform 0.15s;
+    }
+    .btn-secondary:hover {
+      border-color: var(--muted);
+      transform: translateY(-2px);
+    }
+
+    /* Hero stats */
+    .hero-stats {
+      position: absolute;
+      right: 3rem;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      animation: fadeLeft 0.8s 0.4s ease both;
+    }
+
+    @keyframes fadeLeft {
+      from { opacity: 0; transform: translateY(-50%) translateX(30px); }
+      to { opacity: 1; transform: translateY(-50%) translateX(0); }
+    }
+
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.5rem;
+      text-align: center;
+      min-width: 120px;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .stat-card:hover {
+      border-color: rgba(229,57,53,0.4);
+      transform: translateX(-4px);
+    }
+    .stat-card .num {
+      font-family: 'Space Mono', monospace;
+      font-size: 2.2rem;
+      font-weight: 700;
+      color: var(--red);
+      line-height: 1;
+    }
+    .stat-card .label {
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-top: 0.3rem;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── SECTION base ── */
+    section { padding: 6rem 3rem; position: relative; z-index: 1; }
+
+    .section-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--red);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-bottom: 0.8rem;
+    }
+
+    .section-title {
+      font-size: clamp(2rem, 4vw, 3.2rem);
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      margin-bottom: 1rem;
+    }
+
+    .section-sub {
+      font-size: 1rem;
+      color: var(--muted);
+      max-width: 480px;
+      line-height: 1.7;
+    }
+
+    /* ── FEATURES ── */
+    #features { background: var(--bg2); }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.5rem;
+      margin-top: 3.5rem;
+    }
+
+    .feature-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.8rem;
+      transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
+      position: relative;
+      overflow: hidden;
+    }
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: var(--card-accent, var(--red));
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .feature-card:hover {
+      border-color: rgba(229,57,53,0.25);
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+    }
+    .feature-card:hover::before { opacity: 1; }
+
+    .feature-icon {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      display: block;
+    }
+    .feature-card h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 0.6rem;
+    }
+    .feature-card p {
+      font-size: 0.9rem;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    /* ── COMMANDS ── */
+    #commands { background: var(--bg); }
+
+    .commands-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 3rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .cmd-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+      gap: 0.75rem;
+    }
+
+    .cmd-pill {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.7rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: background 0.2s, border-color 0.2s, transform 0.15s;
+      cursor: default;
+    }
+    .cmd-pill:hover {
+      background: rgba(229,57,53,0.08);
+      border-color: rgba(229,57,53,0.3);
+      transform: scale(1.02);
+    }
+    .cmd-pill .cat-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .cmd-pill code {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.78rem;
+      color: var(--white);
+    }
+
+    /* ── FIGHT SHOWCASE ── */
+    #fight { background: var(--bg2); }
+
+    .fight-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: center;
+      margin-top: 3.5rem;
+    }
+
+    .fight-steps { display: flex; flex-direction: column; gap: 1.2rem; }
+
+    .fight-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+    .step-num {
+      width: 34px; height: 34px;
+      background: var(--red);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.8rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .step-text h4 { font-size: 1rem; font-weight: 700; margin-bottom: 0.2rem; }
+    .step-text p { font-size: 0.88rem; color: var(--muted); }
+
+    /* Fake Discord embed */
+    .discord-embed {
+      background: #1e1f2e;
+      border-radius: 8px;
+      border-left: 4px solid var(--purple);
+      padding: 1.2rem 1.4rem;
+      font-family: 'Space Mono', monospace;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+    .embed-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--white);
+      margin-bottom: 1.2rem;
+    }
+    .embed-fighter { margin-bottom: 1.1rem; }
+    .embed-fighter-name {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 0.35rem;
+    }
+    .hp-bar-bg {
+      height: 10px;
+      background: #2a2b3d;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    .hp-bar-fill {
+      height: 100%;
+      border-radius: 5px;
+      transition: width 1s ease;
+    }
+    .hp-label {
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-top: 0.25rem;
+    }
+    .embed-divider {
+      height: 1px;
+      background: #2a2b3d;
+      margin: 1rem 0;
+    }
+    .embed-action {
+      font-size: 0.78rem;
+      color: #a0a0c0;
+    }
+    .embed-buttons {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.8rem;
+    }
+    .embed-btn {
+      background: #2a2b3d;
+      border: none;
+      border-radius: 4px;
+      padding: 0.4rem 0.9rem;
+      color: var(--white);
+      font-family: 'Syne', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: none;
+    }
+
+    /* ── MOD SECTION ── */
+    #moderation { background: var(--bg); }
+
+    .mod-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1rem;
+      margin-top: 3rem;
+    }
+
+    .mod-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.4rem;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .mod-card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(229,57,53,0.25);
+    }
+    .mod-card .mod-cmd {
+      font-family: 'Space Mono', monospace;
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+    .mod-card p {
+      font-size: 0.85rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    /* ── CTA ── */
+    #cta {
+      background: var(--bg2);
+      text-align: center;
+      padding: 7rem 3rem;
+    }
+    #cta .section-title { font-size: clamp(2.5rem, 5vw, 4rem); }
+
+    .cta-actions {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-top: 2.5rem;
+      flex-wrap: wrap;
+    }
+
+    .tags {
+      display: flex;
+      justify-content: center;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      margin-top: 2.5rem;
+    }
+    .tag {
+      background: rgba(88,101,242,0.1);
+      border: 1px solid rgba(88,101,242,0.25);
+      color: #7b8ef7;
+      padding: 0.3rem 0.8rem;
+      border-radius: 99px;
+      font-size: 0.78rem;
+      font-family: 'Space Mono', monospace;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+      padding: 2.5rem 3rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: gap;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    footer .logo { font-family: 'Space Mono', monospace; color: var(--white); font-weight: 700; }
+    footer .logo span { color: var(--red); }
+
+    /* ── Scroll reveal ── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: none;
+    }
+
+    @media (max-width: 768px) {
+      nav { padding: 1rem 1.5rem; }
+      .nav-links { display: none; }
+      .hero { padding: 7rem 1.5rem 3rem; }
+      .hero-stats { display: none; }
+      section { padding: 4rem 1.5rem; }
+      .fight-layout { grid-template-columns: 1fr; }
+      footer { flex-direction: column; gap: 1rem; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="cursor" id="cursor"></div>
+  <div class="cursor-ring" id="cursorRing"></div>
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-logo">Xy<span>Bot</span></div>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#commands">Commands</a>
+      <a href="#fight">Fight</a>
+      <a href="#moderation">Moderation</a>
+    </div>
+    <a href="https://discord.com/oauth2/authorize?client_id=14995666893800073502&permissions=8&integration_type=0&scope=bot+applications.commands" class="nav-cta" target="_blank">Add to Discord</a>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+
+    <div class="hero-badge">
+      <span class="badge-dot"></span>
+      Always Online · Free
+    </div>
+
+    <h1>
+      Your server<br>
+      deserves<br>
+      <span class="red">Xy</span><span class="outline">Bot.</span>
+    </h1>
+
+    <p class="hero-sub">
+      A free, multi-purpose Discord bot packed with 60+ commands —
+      roleplay, games, moderation and more. Built with ❤️ in Termux.
+    </p>
+
+    <div class="hero-actions">
+      <a href="https://discord.com/oauth2/authorize?client_id=14995666893800073502&permissions=8&integration_type=0&scope=bot+applications.commands" class="btn-primary" target="_blank">
+        ⚡ Add to Server
+      </a>
+      <a href="#commands" class="btn-secondary">View Commands</a>
+    </div>
+
+    <div class="hero-stats">
+      <div class="stat-card"><div class="num">60+</div><div class="label">Commands</div></div>
+      <div class="stat-card"><div class="num">24/7</div><div class="label">Online</div></div>
+      <div class="stat-card"><div class="num">Free</div><div class="label">Always</div></div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section id="features">
+    <div class="section-label">What it does</div>
+    <h2 class="section-title reveal">Everything your<br>server needs.</h2>
+    <p class="section-sub reveal">One bot. Every category. No cost.</p>
+
+    <div class="features-grid">
+      <div class="feature-card reveal" style="--card-accent:#e53935">
+        <span class="feature-icon">🎭</span>
+        <h3>Roleplay</h3>
+        <p>30+ anime-style interaction commands with real GIFs. Hug, kiss, slap, cuddle, marry and way more.</p>
+      </div>
+      <div class="feature-card reveal" style="--card-accent:#5865f2">
+        <span class="feature-icon">🎮</span>
+        <h3>Interactive Games</h3>
+        <p>Hangman, TicTacToe, trivia, typerace, scramble, fight system with HP bars and 15+ more games.</p>
+      </div>
+      <div class="feature-card reveal" style="--card-accent:#f59e0b">
+        <span class="feature-icon">😂</span>
+        <h3>Fun Commands</h3>
+        <p>8ball, ship, slots, roast, compliment, banana size, fact, joke, would you rather and many more.</p>
+      </div>
+      <div class="feature-card reveal" style="--card-accent:#10b981">
+        <span class="feature-icon">🛡️</span>
+        <h3>Moderation</h3>
+        <p>Ban, kick, timeout, tempban, purge, warn, unban — all with DM notifications and embed logs.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMMANDS -->
+  <section id="commands">
+    <div class="commands-header">
+      <div>
+        <div class="section-label">Full list</div>
+        <h2 class="section-title reveal">90+ Commands.</h2>
+        <p class="section-sub reveal">All free. All with prefix <code style="color:var(--red);font-family:'Space Mono',monospace">&gt;</code></p>
+      </div>
+    </div>
+
+    <div class="cmd-grid reveal">
+      <!-- Roleplay (red) -->
+      <div class="cmd-pill"><span class="cat-dot" style="background:#e53935"></span><code>>hug</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#e53935"></span><code>>kiss</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#e53935"></span><code>>slap</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#e53935"></span><code>>punch</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#e53935"></span><code>>poke</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#e53935"></span><code>>bite</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#e53935"></span><code>>tickle</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#e53935"></span><code>>pat</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#e53935"></span><code>>cuddle</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#e53935"></span><code>>feed</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#e53935"></span><code>>wave</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#e53935"></span><code>>stare</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#e53935"></span><code>>blush</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#e53935"></span><code>>sleep</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#e53935"></span><code>>cry</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#e53935"></span><code>>dance</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#e53935"></span><code>>laugh</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#e53935"></span><code>>smug</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#e53935"></span><code>>bored</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#e53935"></span><code>>kill</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#e53935"></span><code>>haii</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#e53935"></span><code>>blackflash</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#e53935"></span><code>>nuzzle</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#e53935"></span><code>>bully</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#e53935"></span><code>>nom</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#e53935"></span><code>>throw</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#e53935"></span><code>>handhold</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#e53935"></span><code>>goodnight</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#e53935"></span><code>>greet</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#e53935"></span><code>>yeet</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#e53935"></span><code>>kidnap</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#e53935"></span><code>>marry</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#e53935"></span><code>>marriage</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#e53935"></span><code>>divorce</code></div>
+      <!-- Games (purple) -->
+      <div class="cmd-pill"><span class="cat-dot" style="background:#5865f2"></span><code>>rps</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#5865f2"></span><code>>guess</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#5865f2"></span><code>>cancelguess</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#5865f2"></span><code>>trivia</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#5865f2"></span><code>>quiz</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#5865f2"></span><code>>hangman</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#5865f2"></span><code>>stophangman</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#5865f2"></span><code>>ttt</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#5865f2"></span><code>>tttbot</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#5865f2"></span><code>>math</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#5865f2"></span><code>>scramble</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#5865f2"></span><code>>rollduel</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#5865f2"></span><code>>slots</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#5865f2"></span><code>>bomb</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#5865f2"></span><code>>typerace</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#5865f2"></span><code>>memory</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#5865f2"></span><code>>fastclick</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#5865f2"></span><code>>challenge</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#5865f2"></span><code>>fight</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#5865f2"></span><code>>duel</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#5865f2"></span><code>>aki</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#5865f2"></span><code>>nhie</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#5865f2"></span><code>>countdown</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#5865f2"></span><code>>thisorthat</code></div>
+      <!-- Fun (amber) -->
+      <div class="cmd-pill"><span class="cat-dot" style="background:#f59e0b"></span><code>>8ball</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#f59e0b"></span><code>>coinflip</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#f59e0b"></span><code>>dice</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#f59e0b"></span><code>>ship</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#f59e0b"></span><code>>howgay</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#f59e0b"></span><code>>howlesbian</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#f59e0b"></span><code>>pick</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#f59e0b"></span><code>>banana</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#f59e0b"></span><code>>flip</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#f59e0b"></span><code>>rate</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#f59e0b"></span><code>>roast</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#f59e0b"></span><code>>compliment</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#f59e0b"></span><code>>fact</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#f59e0b"></span><code>>joke</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#f59e0b"></span><code>>wyr</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#f59e0b"></span><code>>truth</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#f59e0b"></span><code>>dare</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#f59e0b"></span><code>>tod</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#f59e0b"></span><code>>poll</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#f59e0b"></span><code>>reverse</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#f59e0b"></span><code>>mock</code></div>
+      <!-- Info (blue) -->
+      <div class="cmd-pill"><span class="cat-dot" style="background:#38bdf8"></span><code>>userinfo</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#38bdf8"></span><code>>serverinfo</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#38bdf8"></span><code>>avatar</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#38bdf8"></span><code>>banner</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#38bdf8"></span><code>>paint</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#38bdf8"></span><code>>roles</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#38bdf8"></span><code>>staff</code></div>
+      <!-- Mod (green) -->
+      <div class="cmd-pill"><span class="cat-dot" style="background:#10b981"></span><code>>to</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#10b981"></span><code>>ban</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#10b981"></span><code>>tempban</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#10b981"></span><code>>kick</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#10b981"></span><code>>purge</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#10b981"></span><code>>unban</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#10b981"></span><code>>removetimeout</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#10b981"></span><code>>warn</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#10b981"></span><code>>warns</code></div>
+      <div class="cmd-pill"><span class="cat-dot" style="background:#10b981"></span><code>>removewarn</code></div>
+    </div>
+
+    <div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-top:2rem;" class="reveal">
+      <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.82rem;color:var(--muted)"><span style="width:9px;height:9px;border-radius:50%;background:#e53935;display:inline-block"></span>Roleplay</div>
+      <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.82rem;color:var(--muted)"><span style="width:9px;height:9px;border-radius:50%;background:#5865f2;display:inline-block"></span>Games</div>
+      <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.82rem;color:var(--muted)"><span style="width:9px;height:9px;border-radius:50%;background:#f59e0b;display:inline-block"></span>Fun</div>
+      <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.82rem;color:var(--muted)"><span style="width:9px;height:9px;border-radius:50%;background:#38bdf8;display:inline-block"></span>Info</div>
+      <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.82rem;color:var(--muted)"><span style="width:9px;height:9px;border-radius:50%;background:#10b981;display:inline-block"></span>Moderation</div>
+    </div>
+  </section>
+
+  <!-- FIGHT -->
+  <section id="fight">
+    <div class="section-label">Featured</div>
+    <h2 class="section-title reveal">Real-time PvP<br>Fight System.</h2>
+    <p class="section-sub reveal">React-based battles with HP bars. No bots needed — challenge real users.</p>
+
+    <div class="fight-layout">
+      <div class="fight-steps reveal">
+        <div class="fight-step">
+          <div class="step-num">1</div>
+          <div class="step-text"><h4>Type <code style="color:var(--red);font-family:'Space Mono',monospace">>fight @user</code></h4><p>Challenge any member to a duel.</p></div>
+        </div>
+        <div class="fight-step">
+          <div class="step-num">2</div>
+          <div class="step-text"><h4>React 👊 to Punch</h4><p>Deal 10–25 random damage to your opponent.</p></div>
+        </div>
+        <div class="fight-step">
+          <div class="step-num">3</div>
+          <div class="step-text"><h4>React 💨 to Dodge</h4><p>Block the next incoming attack completely.</p></div>
+        </div>
+        <div class="fight-step">
+          <div class="step-num">4</div>
+          <div class="step-text"><h4>Last one standing wins!</h4><p>30 second timeout — no response = auto-loss.</p></div>
+        </div>
+      </div>
+
+      <div class="discord-embed reveal">
+        <div class="embed-title">⚔️ Fight!</div>
+        <div class="embed-fighter">
+          <div class="embed-fighter-name">🥊 Xylen</div>
+          <div class="hp-bar-bg"><div class="hp-bar-fill" style="width:67%;background:#e53935"></div></div>
+          <div class="hp-label">❤️ 67/100</div>
+        </div>
+        <div class="embed-fighter">
+          <div class="embed-fighter-name">🥊 rev</div>
+          <div class="hp-bar-bg"><div class="hp-bar-fill" style="width:100%;background:#5865f2"></div></div>
+          <div class="hp-label">❤️ 100/100</div>
+        </div>
+        <div class="embed-divider"></div>
+        <div class="embed-action">📋 Xylen hit rev for <strong>22 HP</strong>!</div>
+        <div class="embed-buttons">
+          <div class="embed-btn">👊 Punch</div>
+          <div class="embed-btn">💨 Dodge</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODERATION -->
+  <section id="moderation">
+    <div class="section-label">Keep order</div>
+    <h2 class="section-title reveal">Moderation<br>made easy.</h2>
+    <p class="section-sub reveal">Every action DMs the user automatically with reason and details.</p>
+
+    <div class="mod-grid">
+      <div class="mod-card reveal"><div class="mod-cmd" style="color:#e53935">🔨 >ban</div><p>Permanently ban a user with a reason. Sends a DM before executing.</p></div>
+      <div class="mod-card reveal"><div class="mod-cmd" style="color:#f59e0b">👢 >kick</div><p>Remove a user from the server. They can rejoin with an invite.</p></div>
+      <div class="mod-card reveal"><div class="mod-cmd" style="color:#5865f2">⏳ >tempban</div><p>Ban a user for a set time. Auto-unbans and notifies when it expires.</p></div>
+      <div class="mod-card reveal"><div class="mod-cmd" style="color:#10b981">🔇 >to</div><p>Timeout up to 4 weeks. Sends a DM with duration and reason.</p></div>
+      <div class="mod-card reveal"><div class="mod-cmd" style="color:#8b5cf6">🗑️ >purge</div><p>Delete up to 100 messages at once. Auto-deletes confirmation.</p></div>
+      <div class="mod-card reveal"><div class="mod-cmd" style="color:#ec4899">⚠️ >warn</div><p>Log warnings per user. Track history with >warns command.</p></div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section id="cta">
+    <div class="blob blob-1" style="left:50%;top:0;transform:translateX(-50%)"></div>
+    <div class="section-label">Get started</div>
+    <h2 class="section-title reveal">Add XyBot<br>to your server.</h2>
+    <p class="section-sub reveal" style="margin:0 auto;">Free. Always online. No setup needed. Just add and use.</p>
+
+    <div class="cta-actions reveal">
+      <a href="https://discord.com/oauth2/authorize?client_id=14995666893800073502&permissions=8&integration_type=0&scope=bot+applications.commands" class="btn-primary" target="_blank">⚡ Add to Discord — Free</a>
+    </div>
+
+    <div class="tags reveal">
+      <span class="tag">#discord</span>
+      <span class="tag">#discordbot</span>
+      <span class="tag">#xybot</span>
+      <span class="tag">#freebot</span>
+      <span class="tag">#gaming</span>
+      <span class="tag">#moderation</span>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="logo">Xy<span>Bot</span></div>
+    <div>Created by <strong style="color:var(--white)">Xylen {49rg0}</strong> · Prefix: <code style="color:var(--red);font-family:'Space Mono',monospace">></code> · Always free</div>
+    <div style="font-size:0.75rem">Made with Termux 🔥</div>
+  </footer>
+
+  <script>
+    // Custom cursor
+    const cursor = document.getElementById('cursor');
+    const ring   = document.getElementById('cursorRing');
+    let mx = 0, my = 0, rx = 0, ry = 0;
+
+    document.addEventListener('mousemove', e => {
+      mx = e.clientX; my = e.clientY;
+      cursor.style.left = mx + 'px';
+      cursor.style.top  = my + 'px';
+    });
+
+    (function animRing() {
+      rx += (mx - rx) * 0.12;
+      ry += (my - ry) * 0.12;
+      ring.style.left = rx + 'px';
+      ring.style.top  = ry + 'px';
+      requestAnimationFrame(animRing);
+    })();
+
+    document.querySelectorAll('a, button, .cmd-pill, .feature-card, .mod-card, .stat-card').forEach(el => {
+      el.addEventListener('mouseenter', () => {
+        cursor.style.width = '20px';
+        cursor.style.height = '20px';
+        ring.style.width = '50px';
+        ring.style.height = '50px';
+      });
+      el.addEventListener('mouseleave', () => {
+        cursor.style.width = '12px';
+        cursor.style.height = '12px';
+        ring.style.width = '36px';
+        ring.style.height = '36px';
+      });
+    });
+
+    // Scroll reveal
+    const reveals = document.querySelectorAll('.reveal');
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach((e, i) => {
+        if (e.isIntersecting) {
+          setTimeout(() => e.target.classList.add('visible'), i * 60);
+          observer.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.1 });
+    reveals.forEach(r => observer.observe(r));
+
+    // Animate HP bars on scroll
+    const hpObserver = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.querySelectorAll('.hp-bar-fill').forEach(bar => {
+            const w = bar.style.width;
+            bar.style.width = '0';
+            setTimeout(() => bar.style.width = w, 300);
+          });
+        }
+      });
+    }, { threshold: 0.3 });
+    document.querySelectorAll('.discord-embed').forEach(el => hpObserver.observe(el));
+  </script>
+</body>
+</html>
